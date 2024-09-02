@@ -18,9 +18,9 @@ choices = ["A", "B", "C", "D"]
 def get_subject(data_dir):
     subjects = sorted(
         [
-            f.split("_test.csv")[0]
+            f.split("_val.csv")[0]
             for f in os.listdir(os.path.join(data_dir, "test"))
-            if "_test.csv" in f
+            if "_val.csv" in f
         ]
     )
     return subjects
@@ -141,7 +141,7 @@ def eval(args, subject, model, tokenizer, dev_df, val_df):
         label = val_df.iloc[i, val_df.shape[1] - 1]
 
         # Ensure compatibility with latest transformers library
-        outputs = model(input_ids=input_ids, return_dict=True)  # Use Cache here
+        outputs = model(input_ids=input_ids, return_dict=True)
         logits = outputs.logits[0, -1]
 
         probs = (
