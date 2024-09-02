@@ -99,7 +99,7 @@ def gen_prompt(train_df, subject, k=-1):
 
 
 @torch.no_grad()
-def eval(args, subject, model, tokenizer, dev_df, test_df):
+def eval(args, subject, model, tokenizer, dev_df, val_df):
     """
     Evaluates the model on a given subject.
 
@@ -109,22 +109,22 @@ def eval(args, subject, model, tokenizer, dev_df, test_df):
     model (AutoModelForCausalLM): The pre-trained model.
     tokenizer (AutoTokenizer): The tokenizer.
     dev_df (pd.DataFrame): The development set dataframe.
-    test_df (pd.DataFrame): The test set dataframe.
+    val_df (pd.DataFrame): The test set dataframe.
 
     Returns:
     tuple: A tuple containing the correct answers array, accuracy, and probabilities array.
     """
     cors = []
     all_probs = []
-    answers = choices[: test_df.shape[1] - 2]
+    answers = choices[: val_df.shape[1] - 2]
     all_times = []
     all_preds = []
 
-    for i in range(test_df.shape[0]):
+    for i in range(val_df.shape[0]):
         start_time = time.time()
         # get prompt and make sure it fits
         k = args.ntrain
-        prompt_end = format_example(test_df, i, include_answer=False)
+        prompt_end = format_example(val_df, i, include_answer=False)
         train_prompt = gen_prompt(dev_df, subject, k)
         prompt = train_prompt + prompt_end
 
@@ -138,7 +138,7 @@ def eval(args, subject, model, tokenizer, dev_df, test_df):
                 model.device
             )
 
-        label = test_df.iloc[i, test_df.shape[1] - 1]
+        label = val_df.iloc[i, val_df.shape[1] - 1]
 
         logits = model(input_ids=input_ids).logits[0, -1]
 
@@ -203,21 +203,21 @@ def main(args):
         dev_df = pd.read_csv(
             os.path.join(args.data_dir, "dev", subject + "_dev.csv"), header=None
         )[: args.ntrain]
-        test_df = pd.read_csv(
-            os.path.join(args.data_dir, "test", subject + "_test.csv"), header=None
+        val_df = pd.read_csv(
+            os.path.join(args.data_dir, "val", subject + "_val.csv"), header=None
         )
 
         # Evaluate the model on the current subject's data
-        cors, probs, all_preds, all_times = eval(args, subject, model, tokenizer, dev_df, test_df)
+        cors, probs, all_preds, all_times = eval(args, subject, model, tokenizer, dev_df, val_df)
 
         # Process and save the results
-        test_df["{}_prediction".format(args.model)] = all_preds
-        test_df["{}_correct".format(args.model)] = cors
+        val_df["{}_prediction".format(args.model)] = all_preds
+        val_df["{}_correct".format(args.model)] = cors
         for j in range(probs.shape[1]):
             choice = choices[j]
-            test_df["{}_choice{}_probs".format(args.model, choice)] = probs[:, j]
-        test_df["{}_spend_time".format(args.model)] = all_times
-        test_df.to_csv(
+            val_df["{}_choice{}_probs".format(args.model, choice)] = probs[:, j]
+        val_df["{}_spend_time".format(args.model)] = all_times
+        val_df.to_csv(
             os.path.join(
                 args.save_dir, "results_{}".format(args.model.split("/")[-1]), "{}.csv".format(subject)
             ),
