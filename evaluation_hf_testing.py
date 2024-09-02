@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import Cache  # Add this import
 
 from config.log_config import logging
 from categories import verify_categories
@@ -140,7 +141,9 @@ def eval(args, subject, model, tokenizer, dev_df, val_df):
 
         label = val_df.iloc[i, val_df.shape[1] - 1]
 
-        logits = model(input_ids=input_ids).logits[0, -1]
+        # Ensure compatibility with latest transformers library
+        outputs = model(input_ids=input_ids, return_dict=True, past_key_values=Cache())  # Use Cache here
+        logits = outputs.logits[0, -1]
 
         probs = (
             torch.nn.functional.softmax(
