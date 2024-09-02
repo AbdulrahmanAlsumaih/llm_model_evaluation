@@ -19,7 +19,7 @@ def get_subject(data_dir):
     subjects = sorted(
         [
             f.split("_val.csv")[0]
-            for f in os.listdir(os.path.join(data_dir, "test"))
+            for f in os.listdir(os.path.join(data_dir, "val"))
             if "_val.csv" in f
         ]
     )
@@ -109,7 +109,7 @@ def eval(args, subject, model, tokenizer, dev_df, val_df):
     model (AutoModelForCausalLM): The pre-trained model.
     tokenizer (AutoTokenizer): The tokenizer.
     dev_df (pd.DataFrame): The development set dataframe.
-    val_df (pd.DataFrame): The test set dataframe.
+    val_df (pd.DataFrame): The  set dataframe.
 
     Returns:
     tuple: A tuple containing the correct answers array, accuracy, and probabilities array.
@@ -140,7 +140,7 @@ def eval(args, subject, model, tokenizer, dev_df, val_df):
 
         label = val_df.iloc[i, val_df.shape[1] - 1]
 
-        # Ensure compatibility with latest transformers library
+        # Ensure compatibility with la transformers library
         outputs = model(input_ids=input_ids, return_dict=True)
         logits = outputs.logits[0, -1]
 
@@ -201,7 +201,7 @@ def main(args):
     for subject in subjects:
         logging.info("Start the subject: {}".format(subject))
 
-        # Read development and test datasets
+        # Read development and  datasets
         dev_df = pd.read_csv(
             os.path.join(args.data_dir, "dev", subject + "_dev.csv"), header=None
         )[: args.ntrain]
