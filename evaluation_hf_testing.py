@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoConfig
+
 
 from config.log_config import logging
 from categories import verify_categories
@@ -44,8 +46,25 @@ def create_result_folder(args):
         os.makedirs(os.path.join(args.save_dir, "results_{}".format(args.model.split("/")[-1])))
 
 def initial_model(args):
+    # Load model configuration
+    config = AutoConfig.from_pretrained(args.model)
+    
+    # Check and adjust `rope_scaling` if necessary
+    if 'rope_scaling' in config:
+        rope_scaling = config.rope_scaling
+        # Validate `rope_scaling` dictionary
+        if not isinstance(rope_scaling, dict) or 'type' not in rope_scaling or 'factor' not in rope_scaling:
+            logging.warning("Invalid 'rope_scaling' configuration found, attempting to fix.")
+            # Example fix: Modify to have only `type` and `factor`
+            config.rope_scaling = {
+                'type': rope_scaling.get('rope_type', 'default_type'),  # Set default or extracted type
+                'factor': rope_scaling.get('factor', 1.0)  # Set default or extracted factor
+            }
+    
+    # Load model and tokenizer with adjusted configuration if necessary
     model = AutoModelForCausalLM.from_pretrained(
         args.model,
+        config=config,  # Pass the potentially adjusted configuration
         torch_dtype=torch.float16,
         load_in_8bit=False,
         low_cpu_mem_usage=True,
